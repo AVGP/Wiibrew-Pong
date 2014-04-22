@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+  <app version="1">
+    <name>Pong</name>
+    <coder>Geekonaut</coder>
+    <version>0.1</version>
+    <release_date>2014</release_date>
+    <short_description>Testing things...</short_description>
+    <long_description>Testing multiple controllers and cursors...</long_description>
+  </app>
