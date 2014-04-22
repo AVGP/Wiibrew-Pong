@@ -12,28 +12,37 @@ static GXRModeObj *videoMode = NULL;
 int ball[2] = {318, 238},
     ballSpeed[2] = {1,1};
 
-void drawBoxAt(u32 *buffer, GXRModeObj *vmode, int x, int y, int w, int h) {
+void drawBoxAt(u32 *buffer, GXRModeObj *vmode, int x, int y, int w, int h, int color) {
     int maxX = x + w,
         maxY = y + h,
         iX = x,
         iY = y;
     for(iY=y; iY<maxY; iY++) {
         for(iX=x; iX<maxX; iX++) {
-            buffer[iY * (vmode->fbWidth / VI_DISPLAY_PIX_SZ) + iX] = COLOR_WHITE;
+            buffer[(iY * vmode->viWidth + iX) / VI_DISPLAY_PIX_SZ] = color;
         }
     }
 }
 
 void moveBall() {
+    int minX = 0, 
+        minY = 0,
+        maxX = videoMode->viWidth  - 5,
+        maxY = videoMode->viHeight - 5;
+
     ball[0] += ballSpeed[0];
     ball[1] += ballSpeed[1];
 
-    if(ball[0] < 1 || ball[0] > 634) {
-        ball[0] = ((ball[0] < 1) ? 1 : 634);
+    if(ball[0] <= minX || ball[0] >= maxX) {
+        if(ball[0] <= minX) ball[0] = minX;
+        else ball[0] = maxX;
+
         ballSpeed[0] *= -1;
     }
-    if(ball[1] < 1 || ball[1] > 470) {
-        ball[1] = ((ball[1] < 1) ? 1 : 470);
+    if(ball[1] <= minY || ball[1] >= maxY) {
+        if(ball[1] <= minY) ball[1] = minY;
+        else ball[1] = maxY;
+
         ballSpeed[1] *= -1;
     }
 }
@@ -64,30 +73,33 @@ int main(int argc, char **argv) {
 
     int currentBuffer = 0;
     ir_t irData[2];
+    int playerY[2];
+    u32 pressed;
 
 	while(1) {
 		WPAD_ScanPads();
         WPAD_IR(0, &irData[0]);
         WPAD_IR(1, &irData[1]);
 
-        CON_Init(xfb[currentBuffer], 0, 0, 
-                 videoMode->fbWidth, videoMode->xfbHeight, videoMode->fbWidth*VI_DISPLAY_PIX_SZ);
-
-		u32 pressed = WPAD_ButtonsDown(0);
+		pressed = WPAD_ButtonsDown(0);
 		if( pressed & WPAD_BUTTON_HOME ) exit(0);
 
-        int playerY[2];
-        playerY[0] = max(0, min(irData[0].y, 399));
-        playerY[1] = max(0, min(irData[1].y, 399));
-        drawBoxAt((u32 *)xfb[currentBuffer], videoMode,  10, playerY[0], 5, 80);
-        drawBoxAt((u32 *)xfb[currentBuffer], videoMode, 629, playerY[1], 5, 80);
-       
+        // Calculate stuff
+        playerY[0] = max(0, min(irData[0].y, videoMode->viWidth));
+        playerY[1] = max(0, min(irData[1].y, videoMode->viHeight));
         moveBall(); 
-        drawBoxAt((u32 *)xfb[currentBuffer], videoMode, ball[0], ball[1], 4, 8);
 
-		VIDEO_SetNextFramebuffer(xfb[currentBuffer]);
-        VIDEO_Flush();
+        // Drawing time!
+        
+        VIDEO_ClearFrameBuffer(videoMode, xfb[currentBuffer], COLOR_BLACK);
+
+        drawBoxAt((u32 *)xfb[currentBuffer], videoMode,  10, playerY[0], 5, 80, COLOR_WHITE);
+        drawBoxAt((u32 *)xfb[currentBuffer], videoMode, videoMode->viWidth - 10, playerY[1], 5, 80, COLOR_WHITE);
+      
+        drawBoxAt((u32 *)xfb[currentBuffer], videoMode, ball[0], ball[1], 4, 4, COLOR_GREEN);
+
         VIDEO_WaitVSync();
+		VIDEO_SetNextFramebuffer(xfb[currentBuffer]);
         currentBuffer ^= currentBuffer;
 	}
 
