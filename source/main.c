@@ -25,8 +25,8 @@ void drawBoxAt(u32 *buffer, GXRModeObj *vmode, int x, int y, int w, int h, int c
 }
 
 void moveBall() {
-    int minX = 0, 
-        minY = 0,
+    int minX =  0, 
+        minY = 40,
         maxX = videoMode->viWidth  - 5,
         maxY = videoMode->viHeight - 5;
 
@@ -52,6 +52,7 @@ int main(int argc, char **argv) {
 	WPAD_Init();
 
 	videoMode = VIDEO_GetPreferredMode(NULL);
+    //videoMode->viTVMode = VI_TVMODE_MPAL_DS;
 
 	// Allocate memory for the display in the uncached region
 	xfb[0] = MEM_K0_TO_K1(SYS_AllocateFramebuffer(videoMode));
@@ -66,7 +67,8 @@ int main(int argc, char **argv) {
 	VIDEO_SetBlack(FALSE);
 	VIDEO_Flush();
 	VIDEO_WaitVSync();
-	if(videoMode->viTVMode&VI_NON_INTERLACE) VIDEO_WaitVSync();
+	VIDEO_WaitVSync();
+	//if(videoMode->viTVMode&VI_NON_INTERLACE) VIDEO_WaitVSync();
 
     WPAD_SetDataFormat(0, WPAD_FMT_BTNS_ACC_IR);
     WPAD_SetVRes(0, videoMode->fbWidth, videoMode->xfbHeight);
@@ -85,8 +87,8 @@ int main(int argc, char **argv) {
 		if( pressed & WPAD_BUTTON_HOME ) exit(0);
 
         // Calculate stuff
-        playerY[0] = max(0, min(irData[0].y, videoMode->viWidth));
-        playerY[1] = max(0, min(irData[1].y, videoMode->viHeight));
+        playerY[0] = max(40, min(irData[0].y, videoMode->viHeight - 80));
+        playerY[1] = max(40, min(irData[1].y, videoMode->viHeight - 80));
         moveBall(); 
 
         // Drawing time!
@@ -94,9 +96,9 @@ int main(int argc, char **argv) {
         VIDEO_ClearFrameBuffer(videoMode, xfb[currentBuffer], COLOR_BLACK);
 
         drawBoxAt((u32 *)xfb[currentBuffer], videoMode,  10, playerY[0], 5, 80, COLOR_WHITE);
-        drawBoxAt((u32 *)xfb[currentBuffer], videoMode, videoMode->viWidth - 10, playerY[1], 5, 80, COLOR_WHITE);
+        drawBoxAt((u32 *)xfb[currentBuffer], videoMode, videoMode->viWidth - 16, playerY[1], 5, 80, COLOR_WHITE);
       
-        drawBoxAt((u32 *)xfb[currentBuffer], videoMode, ball[0], ball[1], 4, 4, COLOR_GREEN);
+        drawBoxAt((u32 *)xfb[currentBuffer], videoMode, ball[0], ball[1], 4, 8, COLOR_WHITE);
 
         VIDEO_WaitVSync();
 		VIDEO_SetNextFramebuffer(xfb[currentBuffer]);
