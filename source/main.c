@@ -3,6 +3,9 @@
 #include <gccore.h>
 #include <wiiuse/wpad.h>
 
+#define X 0
+#define Y 1
+
 #define min(x,y) (x < y ? x : y)
 #define max(x,y) (x > y ? x : y)
 
@@ -26,25 +29,41 @@ void drawBoxAt(u32 *buffer, GXRModeObj *vmode, int x, int y, int w, int h, int c
 
 void moveBall() {
     int minX =  0, 
-        minY = 40,
+        minY = 40, // Magic. My TV appears to be a bit weird.. :C
         maxX = videoMode->viWidth  - 5,
         maxY = videoMode->viHeight - 5;
 
-    ball[0] += ballSpeed[0];
-    ball[1] += ballSpeed[1];
+    ball[X] += ballSpeed[X];
+    ball[Y] += ballSpeed[Y];
 
-    if(ball[0] <= minX || ball[0] >= maxX) {
-        if(ball[0] <= minX) ball[0] = minX;
-        else ball[0] = maxX;
+    // Walls left/right
+    if(ball[X] <= minX || ball[X] >= maxX) {
+        if(ball[X] <= minX) ball[X] = minX;
+        else ball[X] = maxX;
 
-        ballSpeed[0] *= -1;
+        ballSpeed[X] *= -1;
     }
-    if(ball[1] <= minY || ball[1] >= maxY) {
-        if(ball[1] <= minY) ball[1] = minY;
-        else ball[1] = maxY;
 
-        ballSpeed[1] *= -1;
+    // Walls top/bottom
+    if(ball[Y] <= minY || ball[Y] >= maxY) {
+        if(ball[Y] <= minY) ball[Y] = minY;
+        else ball[Y] = maxY;
+
+        ballSpeed[Y] *= -1;
     }
+}
+
+void handleCollision(int player[2], int ball[2], int playerDimensions[2], int ballSize) {
+    if(!(ball[Y] + ballSize >= player[Y] && ball[Y] <= player[Y] + playerDimensions[Y])) {
+        return;
+    } 
+
+    if(ball[X] <= player[X] + playerDimensions[X] && ball[X] + ballSize >= player[X]) {
+        ballSpeed[X] *= -1;
+        return;
+    }
+
+    return;
 }
 
 int main(int argc, char **argv) {
@@ -75,7 +94,10 @@ int main(int argc, char **argv) {
 
     int currentBuffer = 0;
     ir_t irData[2];
-    int playerY[2];
+    int player[2][2];
+    int playerSizes[2] = {5, 80};
+    player[0][X] = 10;
+    player[1][X] = videoMode->viWidth - 16; 
     u32 pressed;
 
 	while(1) {
@@ -87,16 +109,18 @@ int main(int argc, char **argv) {
 		if( pressed & WPAD_BUTTON_HOME ) exit(0);
 
         // Calculate stuff
-        playerY[0] = max(40, min(irData[0].y, videoMode->viHeight - 80));
-        playerY[1] = max(40, min(irData[1].y, videoMode->viHeight - 80));
+        player[0][Y] = max(40, min(irData[0].y, videoMode->viHeight - 80));
+        player[1][Y] = max(40, min(irData[1].y, videoMode->viHeight - 80));
+        
+        handleCollision(player[0], ball, playerSizes, 4);
+        handleCollision(player[1], ball, playerSizes, 4);
         moveBall(); 
 
         // Drawing time!
-        
         VIDEO_ClearFrameBuffer(videoMode, xfb[currentBuffer], COLOR_BLACK);
 
-        drawBoxAt((u32 *)xfb[currentBuffer], videoMode,  10, playerY[0], 5, 80, COLOR_WHITE);
-        drawBoxAt((u32 *)xfb[currentBuffer], videoMode, videoMode->viWidth - 16, playerY[1], 5, 80, COLOR_WHITE);
+        drawBoxAt((u32 *)xfb[currentBuffer], videoMode, player[0][X], player[0][Y], 5, 80, COLOR_WHITE);
+        drawBoxAt((u32 *)xfb[currentBuffer], videoMode, player[1][X], player[1][Y], 5, 80, COLOR_WHITE);
       
         drawBoxAt((u32 *)xfb[currentBuffer], videoMode, ball[0], ball[1], 4, 8, COLOR_WHITE);
 
